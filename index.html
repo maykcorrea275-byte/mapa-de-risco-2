@@ -20,7 +20,7 @@
       color: #ffffff;
     }
 
-    /* Cabeçalho */
+    /* Cabeçalho Superior */
     header {
       position: absolute;
       top: 0;
@@ -75,7 +75,7 @@
       position: relative;
     }
 
-    /* Modulo 2D */
+    /* Visualização 2D */
     #view-2d {
       width: 100%;
       height: 100%;
@@ -83,7 +83,6 @@
       justify-content: center;
       align-items: center;
       padding: 20px;
-      position: relative;
       background-color: #f4f4f6;
     }
 
@@ -102,13 +101,13 @@
       box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     }
 
-    /* Pontos Interativos no 2D (Hotspots) */
+    /* Botões/Círculos de Risco no Mapa 2D */
     .hotspot-2d {
       position: absolute;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.3);
       border: 3px solid #fff;
       cursor: pointer;
       animation: pulse 1.8s infinite;
@@ -121,12 +120,12 @@
     .hotspot-2d.acidente { border-color: #3399ff; box-shadow: 0 0 12px #3399ff; }
 
     @keyframes pulse {
-      0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.8; }
-      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.8; }
+      0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
+      50% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
     }
 
-    /* Modulo 3D */
+    /* Visualização 3D */
     #view-3d {
       width: 100%;
       height: 100%;
@@ -144,9 +143,10 @@
       pointer-events: none;
       display: none;
       z-index: 50;
+      color: #fff;
     }
 
-    /* Janela Pop-up / Modal Interativo */
+    /* Janela Pop-up (Modal) */
     .modal {
       display: none;
       position: fixed;
@@ -154,7 +154,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.75);
+      background: rgba(0,0,0,0.8);
       z-index: 200;
       justify-content: center;
       align-items: center;
@@ -175,7 +175,7 @@
       position: absolute;
       top: 15px;
       right: 20px;
-      font-size: 1.5rem;
+      font-size: 1.8rem;
       color: #aaa;
       cursor: pointer;
     }
@@ -201,6 +201,7 @@
       height: 0;
       overflow: hidden;
       border-radius: 8px;
+      background: #000;
     }
 
     .video-container iframe {
@@ -213,17 +214,18 @@
     }
   </style>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- Bibliotecas Three.js em versões estáveis -->
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
   <header>
     <div class="title">Mapa de Risco Interativo - Sala de Aula</div>
     <div class="toggle-container">
-      <button id="btn-2d" class="btn-toggle active" onclick="switchView('2d')">Visão 2D (Planta)</button>
-      <button id="btn-3d" class="btn-toggle" onclick="switchView('3d')">Visão 3D Interativa</button>
+      <button id="btn-2d" class="btn-toggle active">Visão 2D (Planta)</button>
+      <button id="btn-3d" class="btn-toggle">Visão 3D Interativa</button>
     </div>
   </header>
 
@@ -231,12 +233,12 @@
     <!-- Visão 2D -->
     <div id="view-2d">
       <div class="image-wrapper">
-        <img src="mapa_tradicional.png" alt="Mapa de Risco 2D">
+        <img id="img-2d" src="mapa_tradicional.png" alt="Mapa de Risco 2D">
         
-        <!-- Pontos Interativos no Mapa 2D (Posicionamentos em %) -->
-        <div class="hotspot-2d fisico" style="top: 22%; left: 57%;" onclick="openModal('fisico')"></div>
-        <div class="hotspot-2d ergonomico" style="top: 51%; left: 37%;" onclick="openModal('ergonomico')"></div>
-        <div class="hotspot-2d acidente" style="top: 74%; left: 53%;" onclick="openModal('acidente')"></div>
+        <!-- Pontos Interativos no Mapa 2D -->
+        <div class="hotspot-2d fisico" style="top: 89%; left: 18%;" data-risk="fisico" title="Risco Físico"></div>
+        <div class="hotspot-2d ergonomico" style="top: 51%; left: 37%;" data-risk="ergonomico" title="Risco Ergonômico"></div>
+        <div class="hotspot-2d acidente" style="top: 74%; left: 53%;" data-risk="acidente" title="Risco de Acidente"></div>
       </div>
     </div>
 
@@ -245,13 +247,13 @@
     <div id="loading">Carregando Modelo 3D...</div>
   </div>
 
-  <!-- Modal/Pop-up para Vídeo e Detalhes -->
+  <!-- Modal / Pop-up -->
   <div id="info-modal" class="modal">
     <div class="modal-content">
-      <span class="close-btn" onclick="closeModal()">&times;</span>
+      <span id="btn-close-modal" class="close-btn">&times;</span>
       <h3 id="modal-title" class="modal-title">Título do Risco</h3>
       <div class="modal-body">
-        <p id="modal-desc">Descrição do risco...</p>
+        <p id="modal-desc">Descrição detalhada do risco...</p>
         <div class="video-container">
           <iframe id="modal-video" src="" allowfullscreen></iframe>
         </div>
@@ -260,46 +262,61 @@
   </div>
 
   <script>
-    // Dados dos Riscos (Vídeos e Detalhes)
+    // 1. Dados dos Riscos e Vídeos
     const riskData = {
       fisico: {
         title: "Risco Físico: Ruído dos Ventiladores",
-        desc: "Ruído contínuo proveniente da falta de manutenção nos ventiladores da sala de aula. Recomendação: Manutenção periódica preventiva.",
-        video: "<iframe width="560" height="315" src="https://www.youtube.com/embed/QA9uO0xu9eE?si=endZwZmteE1WcZVG" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        desc: "Ruído proveniente dos ventiladores instalados. Recomendação: Realizar manutenção periódica preventiva.",
+        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
       },
       ergonomico: {
         title: "Risco Ergonômico: Postura Inadequada",
-        desc: "Postura inadequada dos alunos durante as atividades letivas. Recomendação: Orientação postural e ajuste das carteiras.",
-        video: "<iframe width="560" height="315" src="https://www.youtube.com/embed/hrX5gyFkhjg?si=gZLHqPJrpQmdMAQo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>" 
+        desc: "Postura inadequada durante as atividades. Recomendação: Orientar alunos sobre postura adequada.",
+        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
       },
       acidente: {
         title: "Risco de Acidentes: Passagem e Porta",
-        desc: "Possibilidade de tropeços e colisões devido ao fluxo de circulação entre carteiras e passagem da porta. Recomendação: Manter corredores desobstruídos.",
-        video: "https://www.youtube.com/embed/dQw4w9WgXcQ" 
+        desc: "Possibilidade de tropeços e colisões na circulação. Recomendação: Manter área livre de obstáculos.",
+        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
       }
     };
 
+    // 2. Elementos DOM
+    const btn2D = document.getElementById('btn-2d');
+    const btn3D = document.getElementById('btn-3d');
+    const view2D = document.getElementById('view-2d');
+    const view3D = document.getElementById('view-3d');
+    const infoModal = document.getElementById('info-modal');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+
+    // 3. Funções do Modal
     function openModal(key) {
       const data = riskData[key];
       if (!data) return;
       document.getElementById('modal-title').textContent = data.title;
       document.getElementById('modal-desc').textContent = data.desc;
       document.getElementById('modal-video').src = data.video;
-      document.getElementById('info-modal').style.display = 'flex';
+      infoModal.style.display = 'flex';
     }
 
     function closeModal() {
-      document.getElementById('info-modal').style.display = 'none';
-      document.getElementById('modal-video').src = ''; // Para o vídeo ao fechar
+      infoModal.style.display = 'none';
+      document.getElementById('modal-video').src = '';
     }
 
-    // Alternar entre 2D e 3D
-    function switchView(view) {
-      const view2D = document.getElementById('view-2d');
-      const view3D = document.getElementById('view-3d');
-      const btn2D = document.getElementById('btn-2d');
-      const btn3D = document.getElementById('btn-3d');
+    btnCloseModal.addEventListener('click', closeModal);
+    window.addEventListener('click', (e) => { if (e.target === infoModal) closeModal(); });
 
+    // Eventos nos botões 2D
+    document.querySelectorAll('.hotspot-2d').forEach(hotspot => {
+      hotspot.addEventListener('click', () => {
+        const riskKey = hotspot.getAttribute('data-risk');
+        openModal(riskKey);
+      });
+    });
+
+    // 4. Alternar Visões (2D / 3D)
+    function switchView(view) {
       if (view === '2d') {
         view2D.style.display = 'flex';
         view3D.style.display = 'none';
@@ -319,7 +336,10 @@
       }
     }
 
-    // Three.js (3D)
+    btn2D.addEventListener('click', () => switchView('2d'));
+    btn3D.addEventListener('click', () => switchView('3d'));
+
+    // 5. Configuração do Three.js (Cena 3D)
     let scene, camera, renderer, controls, raycaster, mouse;
     let is3DInitialized = false;
     let interactiveObjects = [];
@@ -334,7 +354,7 @@
       scene.background = new THREE.Color(0x1a1a24);
 
       camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-      camera.position.set(0, 12, 16);
+      camera.position.set(0, 10, 15);
 
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(container.clientWidth, container.clientHeight);
@@ -344,33 +364,41 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
       scene.add(ambientLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
       dirLight.position.set(10, 20, 10);
       scene.add(dirLight);
 
-      // Raycaster para cliques no 3D
       raycaster = new THREE.Raycaster();
       mouse = new THREE.Vector2();
 
+      // Carregar modelo 3D
       const loader = new THREE.GLTFLoader();
-      loader.load('modelo_3d.glb', function (gltf) {
-        const model = gltf.scene;
-        scene.add(model);
+      loader.load(
+        'modelo_3d.glb',
+        function (gltf) {
+          const model = gltf.scene;
+          scene.add(model);
 
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        model.position.sub(center);
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          model.position.sub(center);
 
-        // Adicionar esferas de clique nos pontos de risco no 3D
-        add3DMarker(new THREE.Vector3(2, 3, -2), 0x2eb85c, 'fisico');
-        add3DMarker(new THREE.Vector3(0, 1, 0), 0xf9b115, 'ergonomico');
-        add3DMarker(new THREE.Vector3(-2, 1, 3), 0x3399ff, 'acidente');
+          // Marcadores interativos no espaço 3D
+          add3DMarker(new THREE.Vector3(2, 2, -2), 0x2eb85c, 'fisico');
+          add3DMarker(new THREE.Vector3(0, 1, 0), 0xf9b115, 'ergonomico');
+          add3DMarker(new THREE.Vector3(-2, 1, 2), 0x3399ff, 'acidente');
 
-        loadingEl.style.display = 'none';
-      });
+          loadingEl.style.display = 'none';
+        },
+        undefined,
+        function (error) {
+          console.error('Erro ao carregar o modelo 3D:', error);
+          loadingEl.textContent = 'Erro ao carregar o modelo 3D. Verifique se modelo_3d.glb está no repositório.';
+        }
+      );
 
       window.addEventListener('resize', onWindowResize);
       renderer.domElement.addEventListener('pointerdown', onDocumentPointerDown);
@@ -379,7 +407,7 @@
     }
 
     function add3DMarker(position, colorHex, riskKey) {
-      const geometry = new THREE.SphereGeometry(0.35, 16, 16);
+      const geometry = new THREE.SphereGeometry(0.4, 16, 16);
       const material = new THREE.MeshBasicMaterial({ color: colorHex });
       const sphere = new THREE.Mesh(geometry, material);
       sphere.position.copy(position);
@@ -389,6 +417,7 @@
     }
 
     function onDocumentPointerDown(event) {
+      if (!renderer) return;
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -403,7 +432,7 @@
     }
 
     function onWindowResize() {
-      if (!is3DInitialized) return;
+      if (!is3DInitialized || !renderer || !camera) return;
       const container = document.getElementById('view-3d');
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
