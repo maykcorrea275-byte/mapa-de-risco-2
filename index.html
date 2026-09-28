@@ -20,7 +20,7 @@
       color: #ffffff;
     }
 
-    /* Cabeçalho */
+    /* Cabeçalho Superior */
     header {
       position: absolute;
       top: 0;
@@ -101,11 +101,11 @@
       box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     }
 
-    /* Pontos de Risco (Círculos Pulsantes 2D) */
+    /* Círculos Pulsantes dos Riscos em 2D */
     .hotspot-2d {
       position: absolute;
-      width: 34px;
-      height: 34px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.4);
       border: 3px solid #fff;
@@ -115,9 +115,15 @@
       z-index: 500;
     }
 
-    .hotspot-2d.fisico { border-color: #2eb85c; box-shadow: 0 0 12px #2eb85c; }
-    .hotspot-2d.ergonomico { border-color: #f9b115; box-shadow: 0 0 12px #f9b115; }
-    .hotspot-2d.acidente { border-color: #3399ff; box-shadow: 0 0 12px #3399ff; }
+    .hotspot-2d.fisico { 
+      border-color: #2eb85c; 
+      box-shadow: 0 0 12px #2eb85c; 
+    }
+
+    .hotspot-2d.ergonomico { 
+      border-color: #f9b115; 
+      box-shadow: 0 0 12px #f9b115; 
+    }
 
     @keyframes pulse {
       0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
@@ -146,7 +152,7 @@
       color: #fff;
     }
 
-    /* Modal / Pop-up */
+    /* Modal / Pop-up de Vídeos */
     .modal {
       display: none;
       position: fixed;
@@ -214,7 +220,7 @@
     }
   </style>
 
-  <!-- Scripts Three.js na ordem correta de dependência -->
+  <!-- Bibliotecas do Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -235,10 +241,11 @@
       <div class="image-wrapper">
         <img id="img-mapa" src="mapa_tradicional.png" alt="Mapa de Risco 2D" onerror="this.onerror=null; this.src='mapa_tradicional.png.png';">
         
-        <!-- Botões Interativos no Mapa 2D -->
-        <div class="hotspot-2d fisico" style="top: 89%; left: 18%;" data-risk="fisico" title="Risco Físico"></div>
-        <div class="hotspot-2d ergonomico" style="top: 51%; left: 37%;" data-risk="ergonomico" title="Risco Ergonômico"></div>
-        <div class="hotspot-2d acidente" style="top: 74%; left: 53%;" data-risk="acidente" title="Risco de Acidente"></div>
+        <!-- Ponto Risco Físico (Verde - Canto Superior Direito) -->
+        <div class="hotspot-2d fisico" style="top: 22.6%; left: 56.9%;" data-risk="fisico" title="Risco Físico: Ruído"></div>
+        
+        <!-- Ponto Risco Ergonômico (Amarelo - Centro) -->
+        <div class="hotspot-2d ergonomico" style="top: 51.3%; left: 37.6%;" data-risk="ergonomico" title="Risco Ergonômico: Postura Inadequada"></div>
       </div>
     </div>
 
@@ -253,35 +260,30 @@
       <span id="close-modal-btn" class="close-btn">&times;</span>
       <h3 id="modal-title" class="modal-title">Título do Risco</h3>
       <div class="modal-body">
-        <p id="modal-desc">Descrição detalhada do risco...</p>
+        <p id="modal-desc">Descrição do risco...</p>
         <div class="video-container">
-          <iframe id="modal-video" src="" allowfullscreen></iframe>
+          <iframe id="modal-video" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // 1. Dados dos Riscos
+    // Configuração dos Vídeos e Informações
     const riskData = {
       fisico: {
         title: "Risco Físico: Ruído dos Ventiladores",
-        desc: "Ruído contínuo vindo dos ventiladores. Recomendação: Manutenção periódica.",
-        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+        desc: "Exposição ao ruído durante as atividades proveniente dos ventiladores (Grau: Pequeno). Recomendação: Realizar manutenção periódica preventiva dos ventiladores.",
+        video: "https://www.youtube.com/embed/hrX5gyFkhjg?si=ePaSTQrBDv8ypf6C"
       },
       ergonomico: {
         title: "Risco Ergonômico: Postura Inadequada",
-        desc: "Postura inadequada durante as atividades. Recomendação: Orientação postural.",
-        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
-      },
-      acidente: {
-        title: "Risco de Acidentes: Passagem e Porta",
-        desc: "Risco de tropeços e colisões no fluxo de circulação. Recomendação: Desobstruir passagens.",
-        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+        desc: "Má postura e desconforto durante as atividades escolares. Recomendação: Orientar os alunos sobre a postura adequada.",
+        video: "https://www.youtube.com/embed/QA9uO0xu9eE?si=Ge_H9VhwQMzVnVvY"
       }
     };
 
-    // 2. Inicialização dos eventos ao carregar a página
+    // Controle da Interface e Modais
     document.addEventListener('DOMContentLoaded', () => {
       const btn2D = document.getElementById('btn-2d');
       const btn3D = document.getElementById('btn-3d');
@@ -290,7 +292,6 @@
       const modal = document.getElementById('info-modal');
       const closeModalBtn = document.getElementById('close-modal-btn');
 
-      // Abrir Modal
       function openModal(key) {
         const data = riskData[key];
         if (!data) return;
@@ -300,7 +301,6 @@
         modal.style.display = 'flex';
       }
 
-      // Fechar Modal
       function closeModal() {
         modal.style.display = 'none';
         document.getElementById('modal-video').src = '';
@@ -309,7 +309,6 @@
       closeModalBtn.addEventListener('click', closeModal);
       window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-      // Cliques nos pontos 2D
       document.querySelectorAll('.hotspot-2d').forEach(hotspot => {
         hotspot.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -318,7 +317,7 @@
         });
       });
 
-      // Alternar Abas 2D / 3D
+      // Alternar visões 2D e 3D
       btn2D.addEventListener('click', () => {
         view2D.style.display = 'flex';
         view3D.style.display = 'none';
@@ -333,21 +332,20 @@
         btn2D.classList.remove('active');
 
         if (!is3DInitialized) {
-          init3D(openModal);
+          init3D();
         } else if (typeof onWindowResize === 'function') {
           onWindowResize();
         }
       });
     });
 
-    // 3. Lógica do Modelo 3D
+    // Visualizador 3D (Apenas Modelo)
     let is3DInitialized = false;
-    let scene, camera, renderer, controls, raycaster, mouse;
-    let interactiveObjects = [];
+    let scene, camera, renderer, controls;
 
-    function init3D(onMarkerClick) {
+    function init3D() {
       if (typeof THREE === 'undefined') {
-        alert('As bibliotecas 3D não foram carregadas corretamente. Verifique a sua ligação.');
+        alert('Erro ao carregar biblioteca 3D. Tente atualizar a página.');
         return;
       }
 
@@ -377,10 +375,6 @@
       dirLight.position.set(10, 20, 10);
       scene.add(dirLight);
 
-      raycaster = new THREE.Raycaster();
-      mouse = new THREE.Vector2();
-
-      // Carregar ficheiro 3D
       const loader = new THREE.GLTFLoader();
       loader.load(
         'modelo_3d.glb',
@@ -392,46 +386,16 @@
           const center = box.getCenter(new THREE.Vector3());
           model.position.sub(center);
 
-          // Marcadores 3D
-          add3DMarker(new THREE.Vector3(2, 2, -2), 0x2eb85c, 'fisico');
-          add3DMarker(new THREE.Vector3(0, 1, 0), 0xf9b115, 'ergonomico');
-          add3DMarker(new THREE.Vector3(-2, 1, 2), 0x3399ff, 'acidente');
-
           loadingEl.style.display = 'none';
         },
         undefined,
         function (error) {
-          console.error('Erro no modelo 3D:', error);
-          loadingEl.textContent = 'Aviso: Ficheiro "modelo_3d.glb" não encontrado no repositório.';
+          console.error('Erro ao carregar modelo 3D:', error);
+          loadingEl.textContent = 'Aviso: Arquivo "modelo_3d.glb" não encontrado no repositório.';
         }
       );
 
-      function add3DMarker(position, colorHex, riskKey) {
-        const geometry = new THREE.SphereGeometry(0.4, 16, 16);
-        const material = new THREE.MeshBasicMaterial({ color: colorHex });
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.position.copy(position);
-        sphere.userData = { riskKey: riskKey };
-        scene.add(sphere);
-        interactiveObjects.push(sphere);
-      }
-
-      function onDocumentPointerDown(event) {
-        const rect = renderer.domElement.getBoundingClientRect();
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(interactiveObjects);
-
-        if (intersects.length > 0) {
-          const key = intersects[0].object.userData.riskKey;
-          if (key && onMarkerClick) onMarkerClick(key);
-        }
-      }
-
       window.addEventListener('resize', onWindowResize);
-      renderer.domElement.addEventListener('pointerdown', onDocumentPointerDown);
 
       function animate() {
         requestAnimationFrame(animate);
