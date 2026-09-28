@@ -67,7 +67,7 @@
       box-shadow: 0 2px 8px rgba(0, 122, 204, 0.4);
     }
 
-    /* Áreas de Visualização */
+    /* Contentores principais */
     #main-container {
       width: 100%;
       height: calc(100% - 60px);
@@ -104,15 +104,15 @@
     /* Pontos de Risco (Círculos Pulsantes 2D) */
     .hotspot-2d {
       position: absolute;
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.4);
       border: 3px solid #fff;
       cursor: pointer;
       animation: pulse 1.8s infinite;
       transform: translate(-50%, -50%);
-      z-index: 100;
+      z-index: 500;
     }
 
     .hotspot-2d.fisico { border-color: #2eb85c; box-shadow: 0 0 12px #2eb85c; }
@@ -142,7 +142,7 @@
       border-radius: 8px;
       pointer-events: none;
       display: none;
-      z-index: 500;
+      z-index: 800;
       color: #fff;
     }
 
@@ -213,14 +213,19 @@
       border: 0;
     }
   </style>
+
+  <!-- Scripts Three.js na ordem correta de dependência -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
   <header>
     <div class="title">Mapa de Risco Interativo - Sala de Aula</div>
     <div class="toggle-container">
-      <button id="btn-2d" class="btn-toggle active" onclick="switchView('2d')">Visão 2D (Planta)</button>
-      <button id="btn-3d" class="btn-toggle" onclick="switchView('3d')">Visão 3D Interativa</button>
+      <button id="btn-2d" class="btn-toggle active">Visão 2D (Planta)</button>
+      <button id="btn-3d" class="btn-toggle">Visão 3D Interativa</button>
     </div>
   </header>
 
@@ -228,12 +233,12 @@
     <!-- Visão 2D -->
     <div id="view-2d">
       <div class="image-wrapper">
-        <img id="img-2d" src="mapa_tradicional.png" alt="Mapa de Risco 2D" onerror="this.src='mapa_tradicional.png.png'">
+        <img id="img-mapa" src="mapa_tradicional.png" alt="Mapa de Risco 2D" onerror="this.onerror=null; this.src='mapa_tradicional.png.png';">
         
-        <!-- Pontos Interativos (Posicionados sobre o Mapa 2D) -->
-        <div class="hotspot-2d fisico" style="top: 89%; left: 18%;" onclick="openModal('fisico')" title="Risco Físico"></div>
-        <div class="hotspot-2d ergonomico" style="top: 51%; left: 37%;" onclick="openModal('ergonomico')" title="Risco Ergonômico"></div>
-        <div class="hotspot-2d acidente" style="top: 74%; left: 53%;" onclick="openModal('acidente')" title="Risco de Acidente"></div>
+        <!-- Botões Interativos no Mapa 2D -->
+        <div class="hotspot-2d fisico" style="top: 89%; left: 18%;" data-risk="fisico" title="Risco Físico"></div>
+        <div class="hotspot-2d ergonomico" style="top: 51%; left: 37%;" data-risk="ergonomico" title="Risco Ergonômico"></div>
+        <div class="hotspot-2d acidente" style="top: 74%; left: 53%;" data-risk="acidente" title="Risco de Acidente"></div>
       </div>
     </div>
 
@@ -245,7 +250,7 @@
   <!-- Modal / Pop-up -->
   <div id="info-modal" class="modal">
     <div class="modal-content">
-      <span class="close-btn" onclick="closeModal()">&times;</span>
+      <span id="close-modal-btn" class="close-btn">&times;</span>
       <h3 id="modal-title" class="modal-title">Título do Risco</h3>
       <div class="modal-body">
         <p id="modal-desc">Descrição detalhada do risco...</p>
@@ -261,100 +266,95 @@
     const riskData = {
       fisico: {
         title: "Risco Físico: Ruído dos Ventiladores",
-        desc: "Ruído proveniente dos ventiladores instalados. Recomendação: Realizar manutenção periódica preventiva.",
+        desc: "Ruído contínuo vindo dos ventiladores. Recomendação: Manutenção periódica.",
         video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
       },
       ergonomico: {
         title: "Risco Ergonômico: Postura Inadequada",
-        desc: "Postura inadequada durante as atividades. Recomendação: Orientar alunos sobre postura adequada.",
+        desc: "Postura inadequada durante as atividades. Recomendação: Orientação postural.",
         video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
       },
       acidente: {
         title: "Risco de Acidentes: Passagem e Porta",
-        desc: "Possibilidade de tropeços e colisões na circulação. Recomendação: Manter área livre de obstáculos.",
+        desc: "Risco de tropeços e colisões no fluxo de circulação. Recomendação: Desobstruir passagens.",
         video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
       }
     };
 
-    // 2. Funções dos Modais
-    function openModal(key) {
-      const data = riskData[key];
-      if (!data) return;
-      document.getElementById('modal-title').textContent = data.title;
-      document.getElementById('modal-desc').textContent = data.desc;
-      document.getElementById('modal-video').src = data.video;
-      document.getElementById('info-modal').style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('info-modal').style.display = 'none';
-      document.getElementById('modal-video').src = '';
-    }
-
-    // 3. Função de Alternância de Abas (2D / 3D)
-    function switchView(view) {
-      const view2D = document.getElementById('view-2d');
-      const view3D = document.getElementById('view-3d');
+    // 2. Inicialização dos eventos ao carregar a página
+    document.addEventListener('DOMContentLoaded', () => {
       const btn2D = document.getElementById('btn-2d');
       const btn3D = document.getElementById('btn-3d');
+      const view2D = document.getElementById('view-2d');
+      const view3D = document.getElementById('view-3d');
+      const modal = document.getElementById('info-modal');
+      const closeModalBtn = document.getElementById('close-modal-btn');
 
-      if (view === '2d') {
+      // Abrir Modal
+      function openModal(key) {
+        const data = riskData[key];
+        if (!data) return;
+        document.getElementById('modal-title').textContent = data.title;
+        document.getElementById('modal-desc').textContent = data.desc;
+        document.getElementById('modal-video').src = data.video;
+        modal.style.display = 'flex';
+      }
+
+      // Fechar Modal
+      function closeModal() {
+        modal.style.display = 'none';
+        document.getElementById('modal-video').src = '';
+      }
+
+      closeModalBtn.addEventListener('click', closeModal);
+      window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+      // Cliques nos pontos 2D
+      document.querySelectorAll('.hotspot-2d').forEach(hotspot => {
+        hotspot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const key = hotspot.getAttribute('data-risk');
+          openModal(key);
+        });
+      });
+
+      // Alternar Abas 2D / 3D
+      btn2D.addEventListener('click', () => {
         view2D.style.display = 'flex';
         view3D.style.display = 'none';
         btn2D.classList.add('active');
         btn3D.classList.remove('active');
-      } else {
+      });
+
+      btn3D.addEventListener('click', () => {
         view2D.style.display = 'none';
         view3D.style.display = 'block';
         btn3D.classList.add('active');
         btn2D.classList.remove('active');
 
         if (!is3DInitialized) {
-          loadThreeJSAndInit();
+          init3D(openModal);
         } else if (typeof onWindowResize === 'function') {
           onWindowResize();
         }
-      }
-    }
+      });
+    });
 
-    // 4. Carregamento Assíncrono do Three.js (Evita travar os botões se falhar)
+    // 3. Lógica do Modelo 3D
     let is3DInitialized = false;
     let scene, camera, renderer, controls, raycaster, mouse;
     let interactiveObjects = [];
 
-    function loadScript(src) {
-      return new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = src;
-        s.onload = resolve;
-        s.onerror = reject;
-        document.head.appendChild(s);
-      });
-    }
-
-    async function loadThreeJSAndInit() {
-      const loadingEl = document.getElementById('loading');
-      loadingEl.style.display = 'block';
-      loadingEl.textContent = 'Carregando biblioteca 3D...';
-
-      try {
-        if (!window.THREE) {
-          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
-          await loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js');
-          await loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js');
-        }
-        init3D();
-      } catch (err) {
-        console.error('Erro ao carregar Three.js:', err);
-        loadingEl.textContent = 'Erro ao carregar scripts 3D. Verifique a conexão.';
+    function init3D(onMarkerClick) {
+      if (typeof THREE === 'undefined') {
+        alert('As bibliotecas 3D não foram carregadas corretamente. Verifique a sua ligação.');
+        return;
       }
-    }
 
-    function init3D() {
       is3DInitialized = true;
       const container = document.getElementById('view-3d');
       const loadingEl = document.getElementById('loading');
-      loadingEl.textContent = 'Carregando Modelo 3D...';
+      loadingEl.style.display = 'block';
 
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x1a1a24);
@@ -380,6 +380,7 @@
       raycaster = new THREE.Raycaster();
       mouse = new THREE.Vector2();
 
+      // Carregar ficheiro 3D
       const loader = new THREE.GLTFLoader();
       loader.load(
         'modelo_3d.glb',
@@ -391,6 +392,7 @@
           const center = box.getCenter(new THREE.Vector3());
           model.position.sub(center);
 
+          // Marcadores 3D
           add3DMarker(new THREE.Vector3(2, 2, -2), 0x2eb85c, 'fisico');
           add3DMarker(new THREE.Vector3(0, 1, 0), 0xf9b115, 'ergonomico');
           add3DMarker(new THREE.Vector3(-2, 1, 2), 0x3399ff, 'acidente');
@@ -399,40 +401,44 @@
         },
         undefined,
         function (error) {
-          console.error('Erro ao carregar o modelo 3D:', error);
-          loadingEl.textContent = 'Aviso: Modelo 3D (modelo_3d.glb) não encontrado na pasta.';
+          console.error('Erro no modelo 3D:', error);
+          loadingEl.textContent = 'Aviso: Ficheiro "modelo_3d.glb" não encontrado no repositório.';
         }
       );
+
+      function add3DMarker(position, colorHex, riskKey) {
+        const geometry = new THREE.SphereGeometry(0.4, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ color: colorHex });
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.position.copy(position);
+        sphere.userData = { riskKey: riskKey };
+        scene.add(sphere);
+        interactiveObjects.push(sphere);
+      }
+
+      function onDocumentPointerDown(event) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(interactiveObjects);
+
+        if (intersects.length > 0) {
+          const key = intersects[0].object.userData.riskKey;
+          if (key && onMarkerClick) onMarkerClick(key);
+        }
+      }
 
       window.addEventListener('resize', onWindowResize);
       renderer.domElement.addEventListener('pointerdown', onDocumentPointerDown);
 
-      animate();
-    }
-
-    function add3DMarker(position, colorHex, riskKey) {
-      const geometry = new THREE.SphereGeometry(0.4, 16, 16);
-      const material = new THREE.MeshBasicMaterial({ color: colorHex });
-      const sphere = new THREE.Mesh(geometry, material);
-      sphere.position.copy(position);
-      sphere.userData = { riskKey: riskKey };
-      scene.add(sphere);
-      interactiveObjects.push(sphere);
-    }
-
-    function onDocumentPointerDown(event) {
-      if (!renderer) return;
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(interactiveObjects);
-
-      if (intersects.length > 0) {
-        const key = intersects[0].object.userData.riskKey;
-        if (key) openModal(key);
+      function animate() {
+        requestAnimationFrame(animate);
+        if (controls) controls.update();
+        if (renderer && scene && camera) renderer.render(scene, camera);
       }
+      animate();
     }
 
     function onWindowResize() {
@@ -441,12 +447,6 @@
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      if (controls) controls.update();
-      if (renderer && scene && camera) renderer.render(scene, camera);
     }
   </script>
 </body>
