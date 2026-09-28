@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa de Risco Interativo - Sala de Aula (2D & 3D)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #1e1e24;
+      color: #ffffff;
+    }
+
+    /* Cabeçalho / Barra de Controles */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: rgba(30, 30, 36, 0.9);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .toggle-container {
+      display: flex;
+      background: #2b2b36;
+      border-radius: 8px;
+      padding: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-toggle {
+      background: transparent;
+      border: none;
+      color: #a0a0b0;
+      padding: 8px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-toggle.active {
+      background: #007acc;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 122, 204, 0.4);
+    }
+
+    /* Conteúdo Principal */
+    #main-container {
+      width: 100%;
+      height: calc(100% - 60px);
+      margin-top: 60px;
+      position: relative;
+    }
+
+    /* Container 2D */
+    #view-2d {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background-color: #f4f4f6;
+    }
+
+    #view-2d img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* Container 3D */
+    #view-3d {
+      width: 100%;
+      height: 100%;
+      display: none; /* Inicia oculto */
+    }
+
+    /* Tela de Carregamento 3D */
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 1.2rem;
+      background: rgba(0,0,0,0.8);
+      padding: 15px 25px;
+      border-radius: 8px;
+      pointer-events: none;
+      display: none;
+    }
+  </style>
+
+  <!-- Bibliotecas Three.js para renderização 3D -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+
+  <header>
+    <div class="title">Mapa de Risco - Sala de Aula</div>
+    <div class="toggle-container">
+      <button id="btn-2d" class="btn-toggle active" onclick="switchView('2d')">Visão 2D (Planta)</button>
+      <button id="btn-3d" class="btn-toggle" onclick="switchView('3d')">Visão 3D Interativa</button>
+    </div>
+  </header>
+
+  <div id="main-container">
+    <!-- Visualização 2D -->
+    <div id="view-2d">
+      <img src="mapa_tradicional.png" alt="Mapa de Risco 2D - Sala de Aula">
+    </div>
+
+    <!-- Visualização 3D -->
+    <div id="view-3d"></div>
+    <div id="loading">Carregando Modelo 3D...</div>
+  </div>
+
+  <script>
+    // --- LÓGICA DE ALTERNÂNCIA (TOGGLE) ---
+    function switchView(view) {
+      const view2D = document.getElementById('view-2d');
+      const view3D = document.getElementById('view-3d');
+      const btn2D = document.getElementById('btn-2d');
+      const btn3D = document.getElementById('btn-3d');
+
+      if (view === '2d') {
+        view2D.style.display = 'flex';
+        view3D.style.display = 'none';
+        btn2D.classList.add('active');
+        btn3D.classList.remove('active');
+      } else {
+        view2D.style.display = 'none';
+        view3D.style.display = 'block';
+        btn3D.classList.add('active');
+        btn2D.classList.remove('active');
+
+        // Inicializa a cena 3D na primeira vez que clicar no botão 3D
+        if (!is3DInitialized) {
+          init3D();
+        } else {
+          onWindowResize(); // Redimensiona canvas se necessário
+        }
+      }
+    }
+
+    // --- CONFIGURAÇÃO DA CENA THREE.JS (3D) ---
+    let scene, camera, renderer, controls;
+    let is3DInitialized = false;
+
+    function init3D() {
+      is3DInitialized = true;
+      const container = document.getElementById('view-3d');
+      const loadingEl = document.getElementById('loading');
+      loadingEl.style.display = 'block';
+
+      // 1. Cena
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1a1a24);
+
+      // 2. Câmera
+      camera = new THREE.PerspectiveCamera(
+        45, 
+        container.clientWidth / container.clientHeight, 
+        0.1, 
+        1000
+      );
+      camera.position.set(0, 10, 15);
+
+      // 3. Renderizador
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.shadowMap.enabled = true;
+      container.appendChild(renderer.domElement);
+
+      // 4. Controles (OrbitControls)
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // 5. Iluminação
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+      dirLight.position.set(10, 20, 10);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+
+      // Grid de Referência do Chão
+      const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+      scene.add(gridHelper);
+
+      // 6. Carregador do Modelo GLTF/GLB
+      const loader = new THREE.GLTFLoader();
+      
+      // Nome do arquivo enviado no chat (ajuste o caminho se necessário)
+      const modelPath = 'modelo_3d.glb'; 
+
+      loader.load(
+        modelPath,
+        function (gltf) {
+          const model = gltf.scene;
+          scene.add(model);
+
+          // Centralizar modelo na cena automaticamente
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          model.position.sub(center);
+
+          loadingEl.style.display = 'none';
+        },
+        function (xhr) {
+          if (xhr.lengthComputable) {
+            const percentComplete = (xhr.loaded / xhr.total) * 100;
+            loadingEl.textContent = `Carregando Modelo 3D: ${Math.round(percentComplete)}%`;
+          }
+        },
+        function (error) {
+          console.error('Erro ao carregar o modelo 3D:', error);
+          loadingEl.textContent = 'Erro ao carregar o modelo 3D. Verifique o caminho do arquivo.';
+        }
+      );
+
+      // Evento de Redimensionamento da Janela
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Loop de Animação
+      animate();
+    }
+
+    function onWindowResize() {
+      if (!is3DInitialized) return;
+      const container = document.getElementById('view-3d');
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls) controls.update();
+      if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>
